@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     private var statusItem: NSStatusItem!
     private var panel: CommandPanel!
     private var settingsWindow: NSWindow?
+    private var onboardingWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
@@ -26,11 +27,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         buildStatusItem()
         HotKeyManager.shared.onPress = { [weak self] in self?.togglePanel() }
         settings.registerHotKey()
-        // Primera vez: mostrar el panel para que el usuario sepa que está funcionando.
-        if !UserDefaults.standard.bool(forKey: "launchedBefore") {
-            UserDefaults.standard.set(true, forKey: "launchedBefore")
+
+        // `cmddock scan --apply` avisa para recargar los comandos sin reiniciar la app.
+        DistributedNotificationCenter.default().addObserver(
+            forName: CLI.reloadNotification, object: nil, queue: .main
+        ) { [weak self] _ in self?.store.load() }
+
+        let d = UserDefaults.standard
+        let firstLaunch = !d.bool(forKey: "launchedBefore")
+        d.set(true, forKey: "launchedBefore")
+        if !d.bool(forKey: "onboardingDone") {
+            if store.hasOnlySeedCommands {
+                // Instalación nueva: ofrecer analizar el historial (se puede omitir).
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self.openOnboarding() }
+                return
+            }
+            d.set(true, forKey: "onboardingDone") // usuario existente con comandos propios
+        }
+        if firstLaunch {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self.showPanel() }
         }
+    }
+
+    // MARK: Onboarding
+
+    @objc func openOnboarding() {
+        hidePanel(restoreFocus: false)
+        if onboardingWindow == nil {
+            let w = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 640, height: 580),
+                styleMask: [.titled, .closable],
+                backing: .buffered, defer: false
+            )
+            w.title = "Bienvenido a CmdDock"
+            w.isReleasedWhenClosed = false
+            w.contentViewController = NSHostingController(rootView: OnboardingView(
+                store: store,
+                hotKey: settings.hotKey.display,
+                onFinish: { [weak self] in self?.finishOnboarding() }
+            ))
+            w.center()
+            onboardingWindow = w
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        onboardingWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    private func finishOnboarding() {
+        UserDefaults.standard.set(true, forKey: "onboardingDone")
+        onboardingWindow?.close()
+        onboardingWindow = nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { self.showPanel() }
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -188,6 +235,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         menu.addItem(runItem)
 
         menu.addItem(.separator())
+        let scan = NSMenuItem(title: "Analizar historial…", action: #selector(openOnboarding), keyEquivalent: "")
+        scan.target = self
+        menu.addItem(scan)
         let s = NSMenuItem(title: "Ajustes…", action: #selector(openSettings), keyEquivalent: ",")
         s.target = self
         menu.addItem(s)
@@ -202,6 +252,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         run(cmd)
     }
 }
+
+// Modo línea de comandos: `cmddock scan`, `cmddock --version`… (sin interfaz).
+if let code = CLI.runIfRequested(Array(CommandLine.arguments.dropFirst())) {
+    exit(code)
+}
+
+migrateLegacyDefaults()
 
 let app = NSApplication.shared
 let delegate = AppDelegate()

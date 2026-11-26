@@ -135,6 +135,15 @@ struct GeneralSettings: View {
                     Text(loginError).font(.caption).foregroundStyle(.red)
                 }
                 HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Analizar historial")
+                        Text("Propone grupos con tus comandos más usados (local, sin IA)")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Analizar…") { AppDelegate.shared.openOnboarding() }
+                }
+                HStack {
                     Button("Mostrar comandos en Finder") {
                         NSWorkspace.shared.activateFileViewerSelecting([CommandStore.fileURL])
                     }

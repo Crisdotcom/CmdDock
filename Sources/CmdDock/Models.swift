@@ -213,6 +213,13 @@ final class CommandStore: ObservableObject {
 
     private var loading = false
 
+    static let seedCommands: Set<String> = ["git status", "lsof -iTCP -sTCP:LISTEN -n -P", "brew update && brew upgrade"]
+
+    /// true si solo están los comandos de ejemplo (instalación nueva).
+    var hasOnlySeedCommands: Bool {
+        groups.isEmpty && commands.allSatisfy { Self.seedCommands.contains($0.command) }
+    }
+
     private init() { load() }
 
     func load() {

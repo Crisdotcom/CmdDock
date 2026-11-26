@@ -11,7 +11,13 @@ let package = Package(
             linkerSettings: [
                 .linkedFramework("Carbon"),
                 .linkedFramework("ServiceManagement"),
+                .linkedLibrary("sqlite3"),
             ]
-        )
+        ),
+        .testTarget(
+            name: "CmdDockTests",
+            dependencies: ["CmdDock"],
+            path: "Tests/CmdDockTests"
+        ),
     ]
 )
