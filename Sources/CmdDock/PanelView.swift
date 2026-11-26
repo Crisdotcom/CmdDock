@@ -315,16 +315,20 @@ struct PanelView: View {
             hint("⌘E", "editar")
             hint("⌘P", settings.pinned ? "desfijar" : "fijar")
             hint("⎋", "cerrar")
-            Spacer()
-            Text("\(settings.defaultTerminal.displayName) · \(settings.defaultMode.displayName)")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
+            Spacer(minLength: 8)
             Button { onSettings() } label: { Image(systemName: "gearshape") }
                 .buttonStyle(.borderless)
                 .keyboardShortcut(",", modifiers: .command)
                 .help("Ajustes (⌘,)")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
+        .background(hiddenShortcuts)
+    }
 
-            // Atajos invisibles
+    /// Atajos de teclado sin botón visible (fuera del layout del pie).
+    private var hiddenShortcuts: some View {
+        ZStack {
             Button("") { if let c = selected { editing = c } }
                 .keyboardShortcut("e", modifiers: .command)
                 .frame(width: 0, height: 0).opacity(0)
@@ -344,8 +348,9 @@ struct PanelView: View {
                 .frame(width: 0, height: 0).opacity(0)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 9)
+        .frame(width: 0, height: 0)
+        .opacity(0)
+        .accessibilityHidden(true)
     }
 
     private func hint(_ key: String, _ label: String) -> some View {
@@ -356,6 +361,8 @@ struct PanelView: View {
                 .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 4))
             Text(label).font(.system(size: 11))
         }
+        .lineLimit(1)
+        .fixedSize()
         .foregroundStyle(.secondary)
     }
 

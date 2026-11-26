@@ -63,9 +63,11 @@ struct GroupTabBar: View {
                         if adding {
                             nameField(placeholder: "Nuevo grupo") { commitAdd() }
                                 .id("new")
+                        } else {
+                            addButton.id("new")
                         }
                     }
-                    .padding(.leading, 14)
+                    .padding(.horizontal, 14)
                     .padding(.vertical, 2)
                 }
                 .onChange(of: selection) { _, id in
@@ -76,20 +78,23 @@ struct GroupTabBar: View {
                 }
             }
 
-            Button {
-                renamingID = nil
-                draft = ""
-                adding = true
-                DispatchQueue.main.async { fieldFocused = true }
-            } label: {
-                Image(systemName: "plus")
-            }
-            .buttonStyle(GhostIconButtonStyle())
-            .help("Nuevo grupo")
-            .padding(.trailing, 12)
         }
         .frame(height: 34)
         .padding(.bottom, 6)
+    }
+
+    /// Botón «+» justo a la derecha del último grupo.
+    private var addButton: some View {
+        Button {
+            renamingID = nil
+            draft = ""
+            adding = true
+            DispatchQueue.main.async { fieldFocused = true }
+        } label: {
+            Image(systemName: "plus")
+        }
+        .buttonStyle(GhostIconButtonStyle())
+        .help("Nuevo grupo")
     }
 
     // MARK: Inline name field

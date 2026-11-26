@@ -40,6 +40,7 @@ if [[ -f icon/AppIcon.icns ]]; then cp icon/AppIcon.icns "$APP/Contents/Resource
 
 # Firma: usa un certificado de desarrollo si hay uno (así el permiso de
 # Accesibilidad sobrevive a las recompilaciones); si no, firma ad-hoc.
+xattr -cr "$APP" # codesign rechaza atributos de Finder/iCloud ("detritus not allowed")
 IDENTITY="${SIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null | awk -F'"' '/Apple Development|Developer ID/ {print $2; exit}')}"
 if [[ -n "$IDENTITY" ]]; then
     codesign --force --sign "$IDENTITY" "$APP"
