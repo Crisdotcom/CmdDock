@@ -146,6 +146,7 @@ struct HotKey: Codable, Equatable {
 
 final class AppSettings: ObservableObject {
     static let shared = AppSettings()
+    static let minTabDelay = 0.5
     private let d = UserDefaults.standard
 
     @Published var hotKey: HotKey {
@@ -176,7 +177,8 @@ final class AppSettings: ObservableObject {
         defaultTerminal = TerminalApp(rawValue: d.string(forKey: "defaultTerminal") ?? "") ?? installedDefault
         defaultMode = OpenMode(rawValue: d.string(forKey: "defaultMode") ?? "") ?? .newTab
         pressReturn = d.object(forKey: "pressReturn") as? Bool ?? true
-        tabDelay = d.object(forKey: "tabDelay") as? Double ?? 0.4
+        // Mínimo 0,5 s: Warp descarta lo que se escribe antes de terminar de arrancar la shell.
+        tabDelay = max(d.object(forKey: "tabDelay") as? Double ?? 0.8, AppSettings.minTabDelay)
         pinned = d.bool(forKey: "pinned")
         singleClickAction = ClickAction(rawValue: d.string(forKey: "singleClickAction") ?? "") ?? .copy
         doubleClickAction = ClickAction(rawValue: d.string(forKey: "doubleClickAction") ?? "") ?? .run

@@ -218,6 +218,9 @@ struct PanelView: View {
         let isSelected = cmd.id == selected?.id
         let isHovered = cmd.id == hoveredID
         return HStack(spacing: 12) {
+          // Zona de contenido: recibe el clic / doble clic configurables.
+          // La barra de acciones queda fuera para que sus botones reciban sus propios clics.
+          HStack(spacing: 12) {
             DragHandle(isActive: draggingID == cmd.id)
                 .onDrag {
                     draggingID = cmd.id
@@ -260,24 +263,27 @@ struct PanelView: View {
                     .background(Color.primary.opacity(0.07), in: Capsule())
                     .foregroundStyle(.secondary)
             }
+          }
+          .padding(.vertical, 8)
+          .contentShape(Rectangle())
+          .gesture(rowTapGesture(cmd))
 
             ActionBar(
                 isRunning: store.running.contains(cmd.id),
                 showSecondary: isHovered,
-                onCopy: { copy(cmd) },
-                onEdit: { editing = cmd },
+                onCopy: { selectedID = cmd.id; copy(cmd) },
+                onEdit: { selectedID = cmd.id; editing = cmd },
                 onRun: { onRun(cmd) }
             )
+            .onHover { if $0 { hoveredID = cmd.id } } // mantiene visibles copiar/editar
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(isSelected ? Color.accentColor.opacity(0.16) : (isHovered ? Color.primary.opacity(0.05) : .clear))
         )
         .opacity(draggingID == cmd.id ? 0.45 : 1)
         .contentShape(Rectangle())
-        .gesture(rowTapGesture(cmd))
         .onHover { hoveredID = $0 ? cmd.id : (hoveredID == cmd.id ? nil : hoveredID) }
         .contextMenu {
             Button("Ejecutar") { onRun(cmd) }

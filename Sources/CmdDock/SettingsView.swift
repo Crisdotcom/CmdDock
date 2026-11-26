@@ -58,7 +58,7 @@ struct GeneralSettings: View {
                 Toggle("Ejecutar automáticamente (pulsar ↩)", isOn: $settings.pressReturn)
                 LabeledContent("Espera tras abrir pestaña") {
                     HStack {
-                        Slider(value: $settings.tabDelay, in: 0.1...2.0, step: 0.05)
+                        Slider(value: $settings.tabDelay, in: AppSettings.minTabDelay...3.0, step: 0.05)
                             .frame(width: 160)
                         Text(String(format: "%.2f s", settings.tabDelay))
                             .monospacedDigit()

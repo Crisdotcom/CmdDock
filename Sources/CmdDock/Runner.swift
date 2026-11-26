@@ -38,7 +38,8 @@ enum Runner {
                 if let previous { pb.setString(previous, forType: .string) }
             }
             script = keystrokeScript(bundleID: terminal.bundleID, mode: mode,
-                                     delay: settings.tabDelay, pressReturn: settings.pressReturn)
+                                     delay: max(settings.tabDelay, AppSettings.minTabDelay),
+                                     pressReturn: settings.pressReturn)
         }
 
         runAppleScript(script) { error in
@@ -114,7 +115,7 @@ enum Runner {
         return """
         set wasRunning to application id "\(bundleID)" is running
         tell application id "\(bundleID)" to activate
-        if not wasRunning then delay 2.0
+        if not wasRunning then delay 2.5
         tell application "System Events"
             set p to first application process whose bundle identifier is "\(bundleID)"
             repeat 60 times
@@ -124,8 +125,13 @@ enum Runner {
             if wasRunning then
                 \(open)
             end if
+            -- Si el usuario cambió de app mientras esperábamos, no escribir en otra ventana
+            if not (frontmost of p) then
+                tell application id "\(bundleID)" to activate
+                delay 0.2
+            end if
             keystroke "v" using command down
-            \(pressReturn ? "delay 0.15\n            key code 36" : "")
+            \(pressReturn ? "delay 0.4\n            key code 36" : "")
         end tell
         """
     }
