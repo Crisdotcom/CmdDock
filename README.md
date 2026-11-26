@@ -19,6 +19,8 @@
 ### Homebrew (recommended)
 
 ```bash
+brew tap crisdotcom/tap
+brew trust --cask crisdotcom/tap/cmddock   # Homebrew 7+ asks you to trust third-party casks
 brew install --cask crisdotcom/tap/cmddock
 ```
 

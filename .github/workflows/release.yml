@@ -34,7 +34,7 @@ jobs:
             --generate-notes \
             --notes "**SHA-256:** \`$SHA256\`
 
-          Install: \`brew install --cask crisdotcom/tap/cmddock\`"
+          Install: \`brew tap crisdotcom/tap && brew trust --cask crisdotcom/tap/cmddock && brew install --cask crisdotcom/tap/cmddock\`"
 
       - name: Update Homebrew tap
         env:

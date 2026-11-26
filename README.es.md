@@ -15,6 +15,8 @@
 ## Instalación
 
 ```bash
+brew tap crisdotcom/tap
+brew trust --cask crisdotcom/tap/cmddock   # Homebrew 7+ pide confiar en casks de terceros
 brew install --cask crisdotcom/tap/cmddock
 ```
 

@@ -1,4 +1,5 @@
 # Cask de CmdDock. Se publica en el tap Crisdotcom/homebrew-tap (Casks/cmddock.rb):
+#   brew tap crisdotcom/tap && brew trust --cask crisdotcom/tap/cmddock
 #   brew install --cask crisdotcom/tap/cmddock
 # El workflow de release actualiza `version` y `sha256` automáticamente (scripts/update-cask.sh).
 cask "cmddock" do
