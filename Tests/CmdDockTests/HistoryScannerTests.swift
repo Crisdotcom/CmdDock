@@ -102,9 +102,10 @@ final class HistoryScannerTests: XCTestCase {
     }
 
     func testParseZshMetafiedUTF8() {
-        // "ñ" = C3 B1; zsh guarda 0xB1 sin metafy, pero bytes >= 0x83 meta-codificados: 0x83, byte^0x20
-        var bytes = Array(": 1:0;echo ".utf8)
-        bytes += [0xC3, 0x83, 0xB1 ^ 0x20] // 0x83 + (0xB1 ^ 0x20)
+        // "ñ" = C3 B1. zsh "metafica" el byte 0xB1 como 0x83 seguido de (0xB1 ^ 0x20).
+        var bytes: [UInt8] = Array(": 1:0;echo ".utf8)
+        let metafied: [UInt8] = [0xC3, 0x83, 0xB1 ^ 0x20]
+        bytes.append(contentsOf: metafied)
         let cmds = HistoryScanner.parseZsh(Data(bytes))
         XCTAssertEqual(cmds.first, "echo ñ")
     }
