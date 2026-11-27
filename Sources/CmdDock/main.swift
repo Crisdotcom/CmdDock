@@ -123,7 +123,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         }
     }
 
-    func showPanel() {
+    /// - Parameter variablesFor: si se indica, el panel abre el formulario de variables de ese comando.
+    func showPanel(variablesFor commandID: UUID? = nil) {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
         if let vf = screen?.visibleFrame {
@@ -133,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         }
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
-        NotificationCenter.default.post(name: .panelDidShow, object: nil)
+        NotificationCenter.default.post(name: .panelDidShow, object: commandID)
     }
 
     func hidePanel(restoreFocus: Bool) {
@@ -249,7 +250,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     @objc private func menuRun(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? UUID, let cmd = store.commands.first(where: { $0.id == id }) else { return }
-        run(cmd)
+        if cmd.variables.isEmpty {
+            run(cmd)
+        } else {
+            // Tiene {{variables}}: abrir el panel con el formulario
+            DispatchQueue.main.async { self.showPanel(variablesFor: cmd.id) }
+        }
     }
 }
 

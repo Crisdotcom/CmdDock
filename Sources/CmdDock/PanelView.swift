@@ -16,6 +16,7 @@ struct PanelView: View {
     @State private var lastDeleted: (Command, Int)?
     @FocusState private var searchFocused: Bool
     @State private var draggingID: UUID?
+    @State private var prompting: VariablePrompt?
     @AppStorage("selectedGroup") private var selectedGroupRaw = ""
 
     /// Grupo activo (nil = «Todos»). Si el grupo ya no existe, vuelve a «Todos».
@@ -67,7 +68,21 @@ struct PanelView: View {
                 Divider()
                 footer
             }
-            .disabled(editing != nil)
+            .disabled(editing != nil || prompting != nil)
+
+            if let prompting {
+                Color.black.opacity(0.25).ignoresSafeArea()
+                VariablePromptView(
+                    prompt: prompting,
+                    onSubmit: { values in finishPrompt(prompting, values: values) },
+                    onCancel: {
+                        self.prompting = nil
+                        searchFocused = true
+                    }
+                )
+                .id(prompting.id)
+                .transition(.scale(scale: 0.97).combined(with: .opacity))
+            }
 
             if let editing {
                 Color.black.opacity(0.25).ignoresSafeArea()
@@ -111,13 +126,21 @@ struct PanelView: View {
         .frame(width: 680, height: 440)
         .background(.regularMaterial)
         .animation(.easeOut(duration: 0.15), value: editing?.id)
+        .animation(.easeOut(duration: 0.15), value: prompting?.id)
         .animation(.easeOut(duration: 0.15), value: toast)
-        .onReceive(NotificationCenter.default.publisher(for: .panelDidShow)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .panelDidShow)) { note in
             query = ""
             editing = nil
             draggingID = nil
             selectedID = filtered.first?.id
-            searchFocused = true
+            // Desde la barra de menú: abrir directamente el formulario de variables
+            if let id = note.object as? UUID, let cmd = store.commands.first(where: { $0.id == id }) {
+                selectedID = cmd.id
+                prompting = VariablePrompt(command: cmd, action: .run)
+            } else {
+                prompting = nil
+                searchFocused = true
+            }
         }
         .onChange(of: query) { selectedID = filtered.first?.id }
         .onChange(of: selectedGroupRaw) { selectedID = filtered.first?.id }
@@ -134,7 +157,7 @@ struct PanelView: View {
                 .textFieldStyle(.plain)
                 .font(.system(size: 20))
                 .focused($searchFocused)
-                .onSubmit { if let c = selected { onRun(c) } }
+                .onSubmit { if let c = selected { requestRun(c) } }
                 .onKeyPress(.upArrow) { moveSelection(-1); return .handled }
                 .onKeyPress(.downArrow) { moveSelection(1); return .handled }
                 .onKeyPress(.escape) { onHide(); return .handled }
@@ -271,9 +294,9 @@ struct PanelView: View {
             ActionBar(
                 isRunning: store.running.contains(cmd.id),
                 showSecondary: isHovered,
-                onCopy: { selectedID = cmd.id; copy(cmd) },
+                onCopy: { selectedID = cmd.id; requestCopy(cmd) },
                 onEdit: { selectedID = cmd.id; editing = cmd },
-                onRun: { onRun(cmd) }
+                onRun: { requestRun(cmd) }
             )
             .onHover { if $0 { hoveredID = cmd.id } } // mantiene visibles copiar/editar
         }
@@ -286,8 +309,8 @@ struct PanelView: View {
         .contentShape(Rectangle())
         .onHover { hoveredID = $0 ? cmd.id : (hoveredID == cmd.id ? nil : hoveredID) }
         .contextMenu {
-            Button("Ejecutar") { onRun(cmd) }
-            Button("Copiar comando") { copy(cmd) }
+            Button("Ejecutar") { requestRun(cmd) }
+            Button("Copiar comando") { requestCopy(cmd) }
             Button("Editar…") { editing = cmd }
             Button("Duplicar") {
                 var c = cmd
@@ -338,7 +361,7 @@ struct PanelView: View {
             Button("") { if let c = selected { editing = c } }
                 .keyboardShortcut("e", modifiers: .command)
                 .frame(width: 0, height: 0).opacity(0)
-            Button("") { if let c = selected { copy(c) } }
+            Button("") { if let c = selected { requestCopy(c) } }
                 .keyboardShortcut("c", modifiers: [.command, .shift])
                 .frame(width: 0, height: 0).opacity(0)
             Button("") { if let c = selected { delete(c) } }
@@ -392,8 +415,8 @@ struct PanelView: View {
     private func perform(_ action: ClickAction, on cmd: Command) {
         switch action {
         case .none: break
-        case .copy: copy(cmd)
-        case .run: onRun(cmd)
+        case .copy: requestCopy(cmd)
+        case .run: requestRun(cmd)
         case .edit: editing = cmd
         }
     }
@@ -416,6 +439,26 @@ struct PanelView: View {
         let idx = list.firstIndex { $0.id == selected?.id } ?? 0
         let next = max(0, min(list.count - 1, idx + delta))
         selectedID = list[next].id
+    }
+
+    // MARK: Variables
+
+    /// Ejecuta, o primero pide los valores de sus `{{variables}}`.
+    private func requestRun(_ cmd: Command) {
+        if cmd.variables.isEmpty { onRun(cmd) } else { prompting = VariablePrompt(command: cmd, action: .run) }
+    }
+
+    private func requestCopy(_ cmd: Command) {
+        if cmd.variables.isEmpty { copy(cmd) } else { prompting = VariablePrompt(command: cmd, action: .copy) }
+    }
+
+    private func finishPrompt(_ prompt: VariablePrompt, values: [String: String]) {
+        store.rememberValues(values, for: prompt.command.id)
+        var resolved = prompt.command
+        resolved.command = CommandTemplate.render(prompt.command.command, values: values)
+        prompting = nil
+        searchFocused = true
+        if prompt.action == .copy { copy(resolved) } else { onRun(resolved) }
     }
 
     private func copy(_ cmd: Command) {
@@ -660,6 +703,7 @@ struct CommandEditor: View {
                     .frame(height: 74)
                     .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
                     .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.primary.opacity(0.15)))
+                variablesHint
             }
 
             HStack(alignment: .top, spacing: 16) {
@@ -727,6 +771,31 @@ struct CommandEditor: View {
         .frame(width: 500)
         .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .shadow(color: .black.opacity(0.25), radius: 18, y: 6)
+    }
+
+    /// Variables detectadas en el comando, o una pista de la sintaxis si no hay ninguna.
+    @ViewBuilder
+    private var variablesHint: some View {
+        let vars = CommandTemplate.variables(in: command.command)
+        if vars.isEmpty {
+            Text("Usa {{nombre}} o {{nombre:valor}} para pedir datos al ejecutar.")
+                .font(.system(size: 10.5))
+                .foregroundStyle(.tertiary)
+        } else {
+            HStack(spacing: 6) {
+                Text("Pedirá:")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+                ForEach(vars) { v in
+                    Text(v.defaultValue.map { "\(v.name) = \($0)" } ?? v.name)
+                        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                        .padding(.horizontal, 6).padding(.vertical, 1)
+                        .background(Color.barFill, in: Capsule())
+                        .overlay(Capsule().strokeBorder(Color.barStroke))
+                }
+            }
+            .lineLimit(1)
+        }
     }
 
     private func field<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {

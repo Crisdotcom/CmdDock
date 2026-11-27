@@ -6,6 +6,7 @@
 
 - **Atajo global** (por defecto `⌥⌘K`, personalizable) que abre un panel flotante con búsqueda y navegación por teclado.
 - **Ejecuta en la terminal que elijas**, en nueva pestaña, nueva ventana o la actual. Se puede sobrescribir por comando y fijar una carpeta de trabajo.
+- **Variables**: escribe `ssh {{usuario:root}}@{{host}}` y CmdDock te pide los valores antes de ejecutar o copiar (con valores por defecto y recordando los últimos usados).
 - **Grupos en pestañas**, reordenar arrastrando el asa ⠿ y soltar una fila sobre una pestaña para cambiarla de grupo.
 - **Clics configurables**: un clic copia, doble clic ejecuta (o editar / nada).
 - **Análisis del historial (sin IA)**: al abrirlo por primera vez ofrece analizar tu historial de Warp, zsh, bash y fish y proponerte grupos. Se puede omitir y todo es local.
@@ -28,6 +29,16 @@ cmddock scan --apply  # la añade a CmdDock (pide confirmación)
 ```
 
 Desde el código: `git clone https://github.com/Crisdotcom/CmdDock.git && cd CmdDock && ./build.sh install` (macOS 14+, Xcode 15+).
+
+## Variables
+
+Usa `{{nombre}}` o `{{nombre:valor por defecto}}` en cualquier parte del comando:
+
+```bash
+gcloud compute ssh {{vm}} -- -N -L {{puerto:8080}}:localhost:{{puerto}}
+```
+
+Al ejecutarlo o copiarlo aparece un formulario con un campo por variable (si se repite, se pide una vez), una vista previa en vivo y los últimos valores que usaste. Los valores se insertan tal cual: si necesitas comillas, ponlas en el comando (`git commit -m "{{mensaje}}"`).
 
 ## Permisos
 

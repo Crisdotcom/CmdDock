@@ -76,6 +76,10 @@ struct Command: Identifiable, Codable, Hashable {
     var openMode: OpenMode?
     /// nil = sin grupo (solo aparece en «Todos»).
     var groupID: UUID?
+    /// Últimos valores usados para las variables `{{nombre}}` del comando.
+    var lastValues: [String: String]?
+
+    var variables: [CommandTemplate.Variable] { CommandTemplate.variables(in: command) }
 
     var hasOverride: Bool { terminal != nil || openMode != nil }
 }
@@ -284,6 +288,11 @@ final class CommandStore: ObservableObject {
               let to = commands.firstIndex(where: { $0.id == target }) else { return }
         let item = commands.remove(at: from)
         commands.insert(item, at: to)
+    }
+
+    func rememberValues(_ values: [String: String], for commandID: UUID) {
+        guard let i = commands.firstIndex(where: { $0.id == commandID }) else { return }
+        commands[i].lastValues = values
     }
 
     func setGroup(_ commandID: UUID, to groupID: UUID?) {
