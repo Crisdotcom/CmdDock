@@ -24,8 +24,12 @@ ARCH_FLAGS=()
 swift build -c release "${ARCH_FLAGS[@]}"
 BIN="$(swift build -c release "${ARCH_FLAGS[@]}" --show-bin-path)/CmdDock"
 
-APP="build/CmdDock.app"
-rm -rf "$APP"
+# La app se arma y firma en una carpeta temporal: si el proyecto está en una carpeta
+# sincronizada con iCloud (Escritorio, Documentos), la sincronización añade atributos
+# extendidos que hacen fallar a codesign ("detritus not allowed").
+STAGE="$(mktemp -d "${TMPDIR:-/tmp}/cmddock-build.XXXXXX")"
+trap 'rm -rf "$STAGE"' EXIT
+APP="$STAGE/CmdDock.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/CmdDock"
 
@@ -54,27 +58,34 @@ PLIST
 
 if [[ -f icon/AppIcon.icns ]]; then cp icon/AppIcon.icns "$APP/Contents/Resources/"; fi
 
-xattr -cr "$APP" # codesign rechaza atributos de Finder/iCloud ("detritus not allowed")
+xattr -cr "$APP"
 if [[ -n "${CI:-}" ]]; then
     IDENTITY="${SIGN_IDENTITY:--}"
 else
     IDENTITY="${SIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null | awk -F'"' '/Apple Development|Developer ID/ {print $2; exit}')}"
 fi
 codesign --force --sign "${IDENTITY:--}" "$APP"
-echo "✓ $APP ($VERSION)"
+codesign --verify --strict "$APP"
+
+# Copia de referencia en build/ (sin atributos extendidos)
+mkdir -p build
+rm -rf build/CmdDock.app
+ditto --norsrc --noextattr "$APP" build/CmdDock.app
+echo "✓ build/CmdDock.app ($VERSION)"
 
 case "${1:-}" in
     install)
         pkill -x CmdDock 2>/dev/null || true
         rm -rf /Applications/CmdDock.app
-        cp -R "$APP" /Applications/
+        ditto --norsrc --noextattr "$APP" /Applications/CmdDock.app
+        codesign --verify --strict /Applications/CmdDock.app
         open /Applications/CmdDock.app
         echo "✓ Instalado en /Applications"
         ;;
     zip)
         ZIP="build/CmdDock-${VERSION}.zip"
         rm -f "$ZIP"
-        ditto -c -k --keepParent "$APP" "$ZIP"
+        ditto -c -k --norsrc --noextattr --keepParent "$APP" "$ZIP"
         echo "✓ $ZIP"
         shasum -a 256 "$ZIP"
         ;;
