@@ -783,7 +783,7 @@ struct CommandEditor: View {
                 .foregroundStyle(.tertiary)
         } else {
             HStack(spacing: 6) {
-                Text("Pedirá:")
+                Text("Al ejecutar pedirá:")
                     .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
                 ForEach(vars) { v in
