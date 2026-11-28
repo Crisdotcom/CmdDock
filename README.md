@@ -1,5 +1,9 @@
 # CmdDock
 
+<p align="center">
+  <img src="docs/demo/cmddock-demo.gif" alt="CmdDock demo: press ⌥⌘K, search a command and run it in your terminal" width="800">
+</p>
+
 **A Spotlight-style launcher for the terminal commands you run every day.** Press a hotkey, pick a command, and CmdDock runs it in your terminal — Warp, Terminal, iTerm2 or Ghostty — in a new tab, a new window or the current one. No more copying commands out of a note.
 
 > 🇪🇸 [Leer en español](README.es.md) · The app UI is currently in Spanish — translations are very welcome.
@@ -49,6 +53,10 @@ Use `{{name}}` or `{{name:default}}` anywhere in a command:
 ```bash
 gcloud compute ssh {{vm}} -- -N -L {{port:8080}}:localhost:{{port}}
 ```
+
+<p align="center">
+  <img src="docs/demo/cmddock-variables.gif" alt="Filling in the {{user}} and {{host}} variables of an ssh command before CmdDock runs it" width="800">
+</p>
 
 When you run or copy it, a small form asks for each variable (a repeated variable is asked once), shows a live preview, and remembers the last values you used. Values are inserted as-is, so add quotes in the command if you need them: `git commit -m "{{message}}"`.
 
