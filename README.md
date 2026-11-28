@@ -8,6 +8,7 @@
 
 - **Global hotkey** (default `⌥⌘K`, configurable) opens a floating panel with search and keyboard navigation.
 - **Run in your terminal of choice**: Warp, Terminal, iTerm2 or Ghostty; new tab, new window or current tab. Override per command, and set an optional working directory.
+- **Variables**: write `ssh {{user:root}}@{{host}}` and CmdDock asks for the values before running or copying (with defaults and last-used values).
 - **Groups as tabs**, drag-and-drop reordering (grab the ⠿ handle), drop a row on a tab to move it to that group.
 - **Configurable clicks**: single click copies, double click runs (or edit / nothing).
 - **History scan (no AI)**: on first launch CmdDock offers to analyse your Warp, zsh, bash and fish history and propose an initial set of grouped commands. Skippable, fully local.
@@ -40,6 +41,16 @@ git clone https://github.com/Crisdotcom/CmdDock.git
 cd CmdDock
 ./build.sh install
 ```
+
+## Variables
+
+Use `{{name}}` or `{{name:default}}` anywhere in a command:
+
+```bash
+gcloud compute ssh {{vm}} -- -N -L {{port:8080}}:localhost:{{port}}
+```
+
+When you run or copy it, a small form asks for each variable (a repeated variable is asked once), shows a live preview, and remembers the last values you used. Values are inserted as-is, so add quotes in the command if you need them: `git commit -m "{{message}}"`.
 
 ## Permissions
 

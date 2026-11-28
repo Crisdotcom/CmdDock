@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Variables in commands**: `{{name}}` and `{{name:default}}`. Running or copying a command with variables opens a form with a live preview; last-used values are remembered per command. Also works from the menu bar.
+
 ## 1.0.0 — 2026-11-26
 
 First public release.
